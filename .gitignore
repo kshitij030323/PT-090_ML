@@ -4,10 +4,13 @@ __pycache__/
 .env
 .ipynb_checkpoints/
 .DS_Store
+frontend/node_modules/
+frontend/dist/
 # Raw data & evaluator ground truth must never be committed
 data/raw/*
 !data/raw/.gitkeep
 evaluator_data/
+evaluator_test/
 
 # Provided dataset (~90MB) - not committed
 dataset/

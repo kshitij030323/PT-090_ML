@@ -2,6 +2,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import joblib
 
 from src import config as C
@@ -30,6 +31,16 @@ app = FastAPI(
     description="GPS Map Matching and Route Reconstruction",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# Vite development origins only; production deployments should configure their
+# own trusted frontend origin.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -102,6 +113,7 @@ def get_trip_info(trip_id: str, partition: str = "student_test"):
         )
 
 
+@app.get("/trips/{trip_id}/match")
 @app.post("/trips/{trip_id}/match")
 def match_trip(trip_id: str, partition: str = "student_test"):
     if partition not in ["train", "student_test"]:
