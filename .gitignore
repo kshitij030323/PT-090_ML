@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.ipynb_checkpoints/
+.DS_Store
+# Raw data & evaluator ground truth must never be committed
+data/raw/*
+!data/raw/.gitkeep
+evaluator_data/
