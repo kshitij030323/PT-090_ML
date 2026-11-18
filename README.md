@@ -217,8 +217,12 @@ python visualisations/make_eda_plots.py
 # 2. Build feature datasets (already done, outputs in data/processed/)
 python -c "from src.features import build_dataset; build_dataset('train'); build_dataset('student_test')"
 
-# 3. Train models (next step - Person 2)
-# python -m src.models.train
+# 3. Person 2 pipeline: candidates/features -> 5 models -> comparison plots
+python -m src.data.build_tables      # candidate + feature table for all 90 trips -> data/processed/
+python -m src.data.candidate_sweep   # evidence for the radius/K choice -> experiments/results/
+python -m src.models.train_compare   # 5 models, GroupKFold CV, student-test evaluation
+python -m src.models.plot_results    # comparison plots -> visualisations/
+python -m visualisations.folium_map --partition student_test --trip 00000052 --model LightGBM
 ```
 
 ## Rules We Follow
@@ -232,18 +236,43 @@ python -c "from src.features import build_dataset; build_dataset('train'); build
 
 - [x] **EDA** — Complete (90 trips analyzed, visualisations generated)
 - [x] **Features** — Complete (candidate generation + 15 features, 1.7M rows)
-- [ ] **5+ models** — Next (Logistic Regression, Random Forest, XGBoost, LightGBM, MLP)
+- [x] **5+ models** — Complete (Logistic Regression, KNN, Random Forest, LightGBM, MLP); LightGBM selected
 - [ ] **Bayesian opt** — After model selection
 - [ ] **HMM/Viterbi** — Route reconstruction
 - [ ] **API** — FastAPI backend
 - [ ] **UI** — Evaluator interface
 - [ ] **Report** — Technical PDF
 
-## Next Steps (Person 2 – Model Training)
+## Person 2 – Model Experimentation (COMPLETED)
 
-1. Train ≥5 models from different families (linear, tree, ensemble, boosting, neural)
-2. Evaluate with group-aware CV (GroupKFold by trip)
-3. Metrics: Accuracy, Precision, Recall, F1, Log Loss, Top-1 Accuracy, Route Continuity
-4. Compare on student-test partition
-5. Select best model → Bayesian hyperparameter optimisation (Optuna)
+Code: `src/config.py`, `src/data/trip_loader.py`, `src/data/candidates.py`, `src/data/build_tables.py`,
+`src/features/features.py`, `src/models/{metrics,train_compare,plot_results}.py`.
+Assumptions and decisions: `experiments/NOTES.md`. Results: `experiments/results/`.
+
+Each row is one (GPS observation, candidate arc) pair; the classifier predicts P(candidate is the reference arc).
+Candidates: up to K=8 arcs within 100 m, each trip projected into its own UTM zone. Exactly one positive per
+observation (the nearest route arc), so observation-level Top-1 accuracy is meaningful.
+CV is `GroupKFold(5)` by trip; scalers sit inside the sklearn pipeline, so they are fitted per fold.
+
+| Model | Family | CV macro F1 | Student Top-1 | Student macro F1 | Log loss | Route continuity | Train s | Infer ms/obs |
+|---|---|---|---|---|---|---|---|---|
+| LogReg | Linear | 0.8788 | 0.8341 | 0.8888 | 0.1511 | 0.9281 | 0.5 | 0.001 |
+| KNN | Instance-based | 0.8911 | 0.8369 | 0.8973 | 0.1761 | 0.9377 | 0.02 | 0.73 |
+| RandomForest | Ensemble | 0.9070 | 0.8490 | 0.9060 | 0.1159 | 0.9316 | 41.3 | 0.030 |
+| **LightGBM** | **Boosting** | **0.9116** | **0.8506** | **0.9087** | **0.1130** | **0.9419** | 3.4 | 0.038 |
+| MLP | Neural network | 0.9060 | 0.8491 | 0.9062 | 0.1204 | 0.9408 | 18.4 | 0.004 |
+
+**Selected: LightGBM** — best CV macro F1, student-test Top-1, log loss and route continuity, and cheap to retune.
+The margin over Random Forest and the MLP is about 0.005 CV macro F1 against a fold standard deviation of about
+0.02, so the win is consistent but not decisive.
+
+Candidate miss rate (the ceiling on Top-1): 0.16% student-test, 2.80% train
+(`experiments/results/candidate_miss_rate.csv`); the training trips are far noisier than the student-test trips.
+
+## Next Steps (Person 3 – Optimisation & Route Reconstruction)
+
+1. Bayesian hyperparameter optimisation on LightGBM (Optuna, group-aware CV on the 80 training trips)
+2. Compare tuned vs untuned on the same metrics and partitions
+3. HMM + Viterbi over the candidate arcs, using the classifier probabilities as emissions
+4. Compare classifier-only vs classifier+HMM, and analyse route continuity
 6. Save model artifacts to `models/artifacts/`

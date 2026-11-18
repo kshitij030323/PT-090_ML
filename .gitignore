@@ -11,3 +11,7 @@ evaluator_data/
 
 # Provided dataset (~90MB) - not committed
 dataset/
+
+# generated / large files (rebuild with: python -m src.data.build_tables)
+data/processed/*.npy
+data/processed/*.tgz
