@@ -16,8 +16,8 @@ from src.data.inference_loader import load_trip_for_inference
 from src.inference import predict_trip
 
 def load_lightgbm_model():
-    """Load and return the fitted classifier for the API process."""
-    return joblib.load(C.ARTIFACTS_DIR / "LightGBM.joblib")
+    """Load the tuned LightGBM classifier."""
+    return joblib.load(C.ARTIFACTS_DIR / "LightGBM_tuned.joblib")
 
 
 @asynccontextmanager
