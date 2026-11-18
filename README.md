@@ -41,6 +41,20 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Run the API and match a trip
+
+Start the API from the project root:
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Open `http://127.0.0.1:8000/trips/00000076/match` in a browser to get a match
+for a student-test trip. Change the trip ID to another ID from
+`/trips?partition=student_test`; use `partition=train` only for training trips.
+The match endpoint supports GET for direct browser use and POST for clients.
+`/docs` remains available for exploring the API.
+
 Place the provided dataset in `dataset/` (80 train / 10 student-test trips) with structure:
 ```
 dataset/
