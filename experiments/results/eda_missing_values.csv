@@ -1,0 +1,3 @@
+partition,n_missing,n_dup_t,n_neg_dt,isolated_nodes,trips
+student_test,0,0,0,0,10
+train,0,0,0,0,80
